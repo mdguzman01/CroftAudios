@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tap a Flag to Play</title>
+  <style>
+    :root {
+      --bg: #0f172a; --text: #e5e7eb; --muted: #9ca3af; --card:#1f2937; --cardHover:#374151; --accent:#3b82f6;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:linear-gradient(135deg,var(--bg),#0b1225 45%,#0b152d);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+    header{text-align:center;padding:16px 12px 8px}
+    h1{font-size:clamp(20px,3.5vw,32px);margin:6px 0 2px}
+    .sub{color:var(--muted);font-size:14px}
+    .toolbar{display:flex;gap:10px;justify-content:center;padding:8px 12px;flex-wrap:wrap}
+    .btn{background:var(--card);color:var(--text);border:1px solid #263143;padding:10px 14px;border-radius:12px;font-size:14px;cursor:pointer}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:10px 14px 20px;max-width:1200px;margin:0 auto}
+    .card{background:var(--card);border:1px solid #263143;border-radius:16px;overflow:hidden;transition:transform .12s ease,box-shadow .2s ease;box-shadow:0 8px 22px rgba(0,0,0,.35)}
+    .card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.45)}
+    .flag{width:100%;aspect-ratio:4/3;object-fit:cover;background:#0b1225;display:block}
+    .body{padding:10px;display:grid;gap:6px}
+    .title{font-weight:700}
+    .controls{display:flex;gap:8px}
+    .play,.stop{flex:1;text-align:center;padding:8px 10px;border-radius:10px;border:1px solid #2a3750;background:#0b1225;color:#e5e7eb;cursor:pointer}
+    .playing{outline:2px solid var(--accent);outline-offset:-2px}
+    footer{text-align:center;color:var(--muted);font-size:12px;padding:6px 12px 12px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Tap an Image to Play</h1>
+   <!-- <div class="sub">Duplicates removed automatically (case/spacing/AppleDouble files ignored). Add to Home Screen for full-screen.</div>-->
+    <div class="toolbar">
+      <button class="btn" id="btnStopAll">⏹ Stop All</button>
+      <button class="btn" id="btnMute">🔇 Mute</button>
+    </div>
+  </header>
+  <main class="grid" id="grid"></main>
+  <!--<footer>If a .mov doesn't play as audio, it will open a hidden video element.</footer>-->
+
+  <script>
+    const ITEMS = [{"id": "deutschlansenderzeesen", "title": "Deutschlansender Zeesen", "image": "Deutschlansender Zeesen.png", "media": "Deutschlansender Zeesen.mp3", "mediaType": "audio"}, {"id": "radioliberty", "title": "Radio Liberty", "image": "RadioLiberty.png", "media": "RadioLiberty.mov", "mediaType": "video"}, {"id": "radiomoscow", "title": "Radio Moscow", "image": "RadioMoscow.png", "media": "RadioMoscow.mp3", "mediaType": "audio"}, {"id": "radiopeking", "title": "Radio Peking", "image": "RadioPeking.png", "media": "RadioPeking.mp3", "mediaType": "audio"}, {"id": "voa", "title": "Voa", "image": "VOA.png", "media": "VOA.mp3", "mediaType": "audio"}];
+
+    const audios = new Map(); let muted=false;
+    function stopAll(){ for(const [id,m] of audios){m.pause();m.currentTime=0; const c=document.querySelector(`[data-id="${id}"]`); if(c)c.classList.remove('playing');}}
+    function play(id){ for(const [oid,m] of audios){ if(oid!==id){m.pause();m.currentTime=0;} const c=document.querySelector(`[data-id="${oid}"]`); if(c)c.classList.remove('playing');} const m=audios.get(id); if(!m)return; m.muted=muted; m.play().then(_=>{ const c=document.querySelector(`[data-id="${id}"]`); if(c)c.classList.add('playing');}).catch(err=>alert('Playback failed. Tap once and ensure the file exists.\n'+err)); }
+    function stop(id){ const m=audios.get(id); if(!m)return; m.pause(); m.currentTime=0; const c=document.querySelector(`[data-id="${id}"]`); if(c)c.classList.remove('playing'); }
+    function toggleMute(){ muted=!muted; for(const m of audios.values()) m.muted=muted; document.getElementById('btnMute').textContent = muted?'🔊 Unmute':'🔇 Mute'; }
+
+    function build(){ const grid=document.getElementById('grid'); grid.innerHTML=''; ITEMS.forEach(item=>{ const card=document.createElement('article'); card.className='card'; card.dataset.id=item.id;
+      const img=document.createElement('img'); img.className='flag'; img.alt=item.title+' image'; img.src=item.image||''; img.onerror=()=>{img.style.objectFit='contain';img.style.padding='16px';img.alt=item.title+' (image missing)';};
+      const body=document.createElement('div'); body.className='body';
+      const title=document.createElement('div'); title.className='title'; title.textContent=item.title;
+      const controls=document.createElement('div'); controls.className='controls';
+      const p=document.createElement('button'); p.className='play'; p.textContent='▶︎ Play'; p.addEventListener('click',()=>play(item.id),{passive:true});
+      const s=document.createElement('button'); s.className='stop'; s.textContent='⏹ Stop'; s.addEventListener('click',()=>stop(item.id),{passive:true});
+      controls.appendChild(p); controls.appendChild(s); body.appendChild(title); body.appendChild(controls);
+      card.appendChild(img); card.appendChild(body); grid.appendChild(card);
+      let media; if(item.mediaType==='video'){ media=document.createElement('video'); media.src=item.media; media.preload='auto'; media.playsInline=true; media.poster=item.image||''; media.style.display='none'; } else { media=new Audio(item.media); media.preload='auto'; }
+      media.addEventListener('ended',()=>stop(item.id)); document.body.appendChild(media); audios.set(item.id, media);
+    }); document.getElementById('btnStopAll').addEventListener('click',stopAll,{passive:true}); document.getElementById('btnMute').addEventListener('click',toggleMute,{passive:true}); }
+    document.addEventListener('DOMContentLoaded', build);
+  </script>
+</body>
+</html>
