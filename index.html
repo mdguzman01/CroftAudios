@@ -3,64 +3,75 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tap a Flag to Play</title>
+  <title>Tap to Play Audio</title>
   <style>
-    :root {
-      --bg: #0f172a; --text: #e5e7eb; --muted: #9ca3af; --card:#1f2937; --cardHover:#374151; --accent:#3b82f6;
-    }
+    :root { --bg:#0f172a; --text:#e5e7eb; --muted:#9ca3af; --card:#111827; --cardHover:#1a2436; --accent:#3b82f6; --border:#263143; }
     *{box-sizing:border-box}
-    html,body{margin:0;height:100%;background:linear-gradient(135deg,var(--bg),#0b1225 45%,#0b152d);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+    html,body{margin:0;height:100%;background:linear-gradient(135deg,var(--bg),#0b1225 45%,#0b152d);color:#e5e7eb;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
     header{text-align:center;padding:16px 12px 8px}
-    h1{font-size:clamp(20px,3.5vw,32px);margin:6px 0 2px}
-    .sub{color:var(--muted);font-size:14px}
+    h1{font-size:clamp(20px,3.5vw,32px);margin:6px 0 4px}
+    .sub{color:var(--muted);font-size:14px;margin-bottom:6px}
     .toolbar{display:flex;gap:10px;justify-content:center;padding:8px 12px;flex-wrap:wrap}
-    .btn{background:var(--card);color:var(--text);border:1px solid #263143;padding:10px 14px;border-radius:12px;font-size:14px;cursor:pointer}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:10px 14px 20px;max-width:1200px;margin:0 auto}
-    .card{background:var(--card);border:1px solid #263143;border-radius:16px;overflow:hidden;transition:transform .12s ease,box-shadow .2s ease;box-shadow:0 8px 22px rgba(0,0,0,.35)}
-    .card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.45)}
-    .flag{width:100%;aspect-ratio:4/3;object-fit:cover;background:#0b1225;display:block}
+    .btn{background:var(--card);color:var(--text);border:1px solid var(--border);padding:10px 14px;border-radius:12px;font-size:14px;cursor:pointer}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;padding:10px 14px 22px;max-width:1200px;margin:0 auto}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:transform .12s ease,box-shadow .2s ease,border-color .2s ease;box-shadow:0 8px 22px rgba(0,0,0,.35)}
+    .card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.45);border-color:#3a4a65}
+    .flag{width:100%;aspect-ratio:4/3;display:block;object-fit:cover;background:#0b1225}
     .body{padding:10px;display:grid;gap:6px}
     .title{font-weight:700}
     .controls{display:flex;gap:8px}
-    .play,.stop{flex:1;text-align:center;padding:8px 10px;border-radius:10px;border:1px solid #2a3750;background:#0b1225;color:#e5e7eb;cursor:pointer}
+    .play,.stop{flex:1;text-align:center;padding:10px 12px;border-radius:10px;border:1px solid #2a3750;background:#0b1225;color:#e5e7eb;cursor:pointer}
     .playing{outline:2px solid var(--accent);outline-offset:-2px}
     footer{text-align:center;color:var(--muted);font-size:12px;padding:6px 12px 12px}
+    .bottom-wrap{display:flex;justify-content:center;gap:12px;padding:0 14px 26px;flex-wrap:wrap}
+    .bottom-card{width:min(22rem,28vw);max-width:360px;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:var(--card);box-shadow:0 8px 22px rgba(0,0,0,.35)}
+    .bottom-flag{width:100%;aspect-ratio:4/3;display:block;background:#0b1225;object-fit:cover}
+    .qr-nocrop{object-fit:contain;background:#fff;padding:6px}
+    .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;padding:10px;z-index:50}
+    .lightbox img{max-width:95vw;max-height:90vh;display:block}
+    .lightbox.show{display:flex}
+    .closeBtn{position:absolute;top:14px;right:14px;background:#111827;border:1px solid #333;border-radius:10px;padding:8px 12px;color:#e5e7eb;cursor:pointer}
+    @media (max-width:640px){.bottom-wrap{gap:10px}.bottom-card{width:42vw;max-width:none}}
   </style>
 </head>
 <body>
   <header>
-    <h1>Tap an Image to Play</h1>
-   <!-- <div class="sub">Duplicates removed automatically (case/spacing/AppleDouble files ignored). Add to Home Screen for full-screen.</div>-->
+    <h1>Tap to Play Audio</h1>
     <div class="toolbar">
       <button class="btn" id="btnStopAll">⏹ Stop All</button>
       <button class="btn" id="btnMute">🔇 Mute</button>
     </div>
   </header>
-  <main class="grid" id="grid"></main>
-  <!--<footer>If a .mov doesn't play as audio, it will open a hidden video element.</footer>-->
-
+  <main class="grid" id="grid-top"></main>
+  <section class="bottom-wrap" id="bottom-wrap"></section>
+  <footer>Scan QR Code to view on your phone.</footer>
+  <div class="lightbox" id="lightbox">
+    <button class="closeBtn" id="lbClose">✕ Close</button>
+    <img id="lbImg" alt="Full view" />
+  </div>
   <script>
-    const ITEMS = [{"id": "deutschlansenderzeesen", "title": "Deutschlansender Zeesen", "image": "Deutschlansender Zeesen.png", "media": "Deutschlansender Zeesen.mp3", "mediaType": "audio"}, {"id": "radioliberty", "title": "Radio Liberty", "image": "RadioLiberty.png", "media": "RadioLiberty.mov", "mediaType": "video"}, {"id": "radiomoscow", "title": "Radio Moscow", "image": "RadioMoscow.png", "media": "RadioMoscow.mp3", "mediaType": "audio"}, {"id": "radiopeking", "title": "Radio Peking", "image": "RadioPeking.png", "media": "RadioPeking.mp3", "mediaType": "audio"}, {"id": "voa", "title": "Voa", "image": "VOA.png", "media": "VOA.mp3", "mediaType": "audio"}];
-
-    const audios = new Map(); let muted=false;
-    function stopAll(){ for(const [id,m] of audios){m.pause();m.currentTime=0; const c=document.querySelector(`[data-id="${id}"]`); if(c)c.classList.remove('playing');}}
-    function play(id){ for(const [oid,m] of audios){ if(oid!==id){m.pause();m.currentTime=0;} const c=document.querySelector(`[data-id="${oid}"]`); if(c)c.classList.remove('playing');} const m=audios.get(id); if(!m)return; m.muted=muted; m.play().then(_=>{ const c=document.querySelector(`[data-id="${id}"]`); if(c)c.classList.add('playing');}).catch(err=>alert('Playback failed. Tap once and ensure the file exists.\n'+err)); }
-    function stop(id){ const m=audios.get(id); if(!m)return; m.pause(); m.currentTime=0; const c=document.querySelector(`[data-id="${id}"]`); if(c)c.classList.remove('playing'); }
-    function toggleMute(){ muted=!muted; for(const m of audios.values()) m.muted=muted; document.getElementById('btnMute').textContent = muted?'🔊 Unmute':'🔇 Mute'; }
-
-    function build(){ const grid=document.getElementById('grid'); grid.innerHTML=''; ITEMS.forEach(item=>{ const card=document.createElement('article'); card.className='card'; card.dataset.id=item.id;
-      const img=document.createElement('img'); img.className='flag'; img.alt=item.title+' image'; img.src=item.image||''; img.onerror=()=>{img.style.objectFit='contain';img.style.padding='16px';img.alt=item.title+' (image missing)';};
-      const body=document.createElement('div'); body.className='body';
-      const title=document.createElement('div'); title.className='title'; title.textContent=item.title;
-      const controls=document.createElement('div'); controls.className='controls';
-      const p=document.createElement('button'); p.className='play'; p.textContent='▶︎ Play'; p.addEventListener('click',()=>play(item.id),{passive:true});
-      const s=document.createElement('button'); s.className='stop'; s.textContent='⏹ Stop'; s.addEventListener('click',()=>stop(item.id),{passive:true});
-      controls.appendChild(p); controls.appendChild(s); body.appendChild(title); body.appendChild(controls);
-      card.appendChild(img); card.appendChild(body); grid.appendChild(card);
-      let media; if(item.mediaType==='video'){ media=document.createElement('video'); media.src=item.media; media.preload='auto'; media.playsInline=true; media.poster=item.image||''; media.style.display='none'; } else { media=new Audio(item.media); media.preload='auto'; }
-      media.addEventListener('ended',()=>stop(item.id)); document.body.appendChild(media); audios.set(item.id, media);
-    }); document.getElementById('btnStopAll').addEventListener('click',stopAll,{passive:true}); document.getElementById('btnMute').addEventListener('click',toggleMute,{passive:true}); }
-    document.addEventListener('DOMContentLoaded', build);
+    const AUDIO_ITEMS=[
+      {id:"deutschlandsenderzeesen",title:"Deutschland Senderzeesen",image:"deutschlansenderzeesen.png",media:"Deutschlandsenderzeesen.mp3",mediaType:"audio"},
+      {id:"radioliberty",title:"Radio Liberty",image:"RadioLiberty.png",media:"RadioLiberty.mp3",mediaType:"audio"},
+      {id:"radiomoscow",title:"Radio Moscow",image:"RadioMoscow.png",media:"RadioMoscow.mp3",mediaType:"audio"},
+      {id:"radiopeking",title:"Radio Peking",image:"RadioPeking.png",media:"RadioPeking.mp3",mediaType:"audio"},
+      {id:"voa",title:"Voa",image:"Voa.png",media:"Voa.mp3",mediaType:"audio"}
+    ];
+    const BOTTOM_IMAGES=[
+      {id:"radiopic1",image:"RadioPic1.png"},
+      {id:"radiopic2",image:"RadioPic2.png"},
+      {id:"qr",image:"QR.png",qr:true}
+    ];
+    const grid=document.getElementById("grid-top"),bottom=document.getElementById("bottom-wrap"),map=new Map();let muted=false;
+    function stopAll(){for(const [i,m]of map){m.pause();m.currentTime=0;document.querySelector(`[data-id='${i}']`)?.classList.remove("playing")}}
+    function play(id){for(const [i,m]of map){if(i!==id){m.pause();m.currentTime=0}document.querySelector(`[data-id='${i}']`)?.classList.remove("playing")}const m=map.get(id);if(!m)return;m.muted=muted;m.play().then(()=>{document.querySelector(`[data-id='${id}']`)?.classList.add("playing")}).catch(e=>alert("Playback failed: "+e))}
+    function toggleMute(){muted=!muted;for(const m of map.values())m.muted=muted;document.getElementById("btnMute").textContent=muted?"🔊 Unmute":"🔇 Mute"}
+    const lb={el:document.getElementById("lightbox"),img:document.getElementById("lbImg"),close:document.getElementById("lbClose")};
+    lb.close.onclick=()=>lb.el.classList.remove("show");lb.el.onclick=e=>{if(e.target===lb.el)lb.el.classList.remove("show")};
+    document.onkeydown=e=>{if(e.key==="Escape")lb.el.classList.remove("show")};
+    function buildTop(){grid.innerHTML="";AUDIO_ITEMS.forEach(i=>{const c=document.createElement("article");c.className="card";c.dataset.id=i.id;const img=document.createElement("img");img.className="flag";img.src=i.image;const b=document.createElement("div");b.className="body";const t=document.createElement("div");t.className="title";t.textContent=i.title;const ctr=document.createElement("div");ctr.className="controls";const p=document.createElement("button");p.className="play";p.textContent="▶︎ Play";p.onclick=()=>play(i.id);const s=document.createElement("button");s.className="stop";s.textContent="⏹ Stop";s.onclick=()=>stopAll();ctr.append(p,s);b.append(t,ctr);c.append(img,b);grid.append(c);const m=new Audio(i.media);m.preload="auto";m.onended=()=>stopAll();map.set(i.id,m)})}
+    function buildBottom(){bottom.innerHTML="";BOTTOM_IMAGES.forEach(i=>{const c=document.createElement("div");c.className="bottom-card";const img=document.createElement("img");img.className="bottom-flag"+(i.qr?" qr-nocrop":"");img.src=i.image;if(!i.qr){img.style.cursor="zoom-in";img.onclick=()=>{lb.img.src=i.image;lb.el.classList.add("show")}}c.append(img);bottom.append(c)})}
+    document.addEventListener("DOMContentLoaded",()=>{buildTop();buildBottom();document.getElementById("btnStopAll").onclick=stopAll;document.getElementById("btnMute").onclick=toggleMute});
   </script>
 </body>
 </html>
